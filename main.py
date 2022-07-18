@@ -1,27 +1,25 @@
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import os
 import requests
 import subprocess
+import datetime
 import shutil, zipfile
 from PIL import Image
 
-abs_path = os.path.abspath('./') + '/'
-
+# abs_path = os.path.abspath('./') + '/'
+abs_path = os.path.dirname(os.path.abspath(__file__))
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir) # NOTE: 첫번째!!
 
-@app.route('/', methods=['GET', 'POST']) # REST API 구조다!
-
+@app.route('/', methods=['GET'])
 # def home(project_name='', methods=['GET', 'POST'], img_paths=[]):
-# def home(project_name='', img_paths=[]):
-def home():
+def home(project_name='', img_paths=''):
     # print('@@', project_name, img_paths)
-    # return render_template("home.html", project_name=project_name, img_paths=img_paths)
-    print('안뇽')
-    
+    return render_template("home.html", project_name=project_name, img_paths=img_paths)
 
-
+# @app.route('/', methods=['GET', 'POST']) # REST API 구조다!
+@app.route('/upload', methods=['POST'])
 def upload():
     try:
         stream_id = datetime.dateime.now().strftime('%Y%m%d%H%M%S')
