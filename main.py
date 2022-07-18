@@ -1,13 +1,9 @@
-import json
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, render_template
 import os
-import requests
-import subprocess
 import datetime
-import shutil, zipfile
-from PIL import Image
 import time
 from eval import test_CLIP
+from werkzeug.utils import secure_filename
 
 # abs_path = os.path.abspath('./') + '/'
 abs_path = os.path.dirname(os.path.abspath(__file__))
@@ -20,11 +16,12 @@ def home(project_name='', img_paths=''):
     # print('@@', project_name, img_paths)
     return render_template("home.html", project_name=project_name, img_paths=img_paths)
 
+
 # @app.route('/', methods=['GET', 'POST']) # REST API 구조다!
 @app.route('/upload', methods=['POST'])
 def upload():
     try:
-        stream_id = datetime.dateime.now().strftime('%Y%m%d%H%M%S')
+        stream_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         
         save_dir = os.path.join(abs_path, 'streams', stream_id)
         files_dir = os.path.join(save_dir, 'files')
@@ -37,31 +34,42 @@ def upload():
             os.mkdir(img_save_dir)
             os.mkdir(obj_save_dir)
         
-        filelist = []
+        # file = request.files['images']
+        # filename = secure_filename(file.filename)
+        # # filepath = os.path.join(img_save_dir, f'00000.png')
+        # file.save(img_save_dir, filename)
+        # print(img_save_dir)
+        # print(filepath)
+        
         requests = request.files.getlist('images')
+        filelist = []
         
         for idx, req in enumerate(requests):
             filepath = os.path.join(img_save_dir, f"{idx:05d}.png")
             req.save(filepath)
             filelist.append(filepath)
-            
+        
+        # print(filelist)
         # file = request.files['file']
         # filename = file.filename
         # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         # img_src = url_for('static', filename = 'uploads/' + filename)
-        img_src = filelist[0]
+        # img_src = filelist[0]
 
         start_time = time.time()
-        captionList, execTime = test_CLIP(img_src)
+        print(f'filelist: {filelist[0]}')
+        captionList, execTime = test_CLIP(filelist[0])
+        
         end_time = time.time()
         app.logger.info(end_time-start_time)
         
-        return render_template('index.html', filename=img_src, caption=captionList, time=execTime)
+        return render_template('index.html', image_file=filelist[0], caption=captionList, time=execTime)
+        # return f'{captionList[0]}'
 
 
     except Exception as e:
         print(e)
-        return "실패했어요!!"    
+        return "실패입니다"    
     
 
 if __name__ == '__main__':
