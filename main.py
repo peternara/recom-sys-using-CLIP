@@ -6,6 +6,8 @@ import subprocess
 import datetime
 import shutil, zipfile
 from PIL import Image
+import time
+from eval import test_CLIP
 
 # abs_path = os.path.abspath('./') + '/'
 abs_path = os.path.dirname(os.path.abspath(__file__))
@@ -39,11 +41,23 @@ def upload():
         requests = request.files.getlist('images')
         
         for idx, req in enumerate(requests):
-            filepath.os.path.join(img_save_dir, f"{idx:05d}.png")
+            filepath = os.path.join(img_save_dir, f"{idx:05d}.png")
             req.save(filepath)
             filelist.append(filepath)
+            
+        # file = request.files['file']
+        # filename = file.filename
+        # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # img_src = url_for('static', filename = 'uploads/' + filename)
+        img_src = filelist[0]
+
+        start_time = time.time()
+        captionList, execTime = test_CLIP(img_src)
+        end_time = time.time()
+        app.logger.info(end_time-start_time)
         
-        return "성공했어요!!"
+        return render_template('index.html', filename=img_src, caption=captionList, time=execTime)
+
 
     except Exception as e:
         print(e)
@@ -51,5 +65,4 @@ def upload():
     
 
 if __name__ == '__main__':
-    app.run(debug=True)
-    app.run(host='')
+    app.run(host='0.0.0.0', port=9081, debug=True)  # http  # NOTE: 두번쨰!!
