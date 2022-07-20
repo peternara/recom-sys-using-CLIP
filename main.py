@@ -1,76 +1,64 @@
+# Modified by Sehyun Kim, 2022-07-20(July 20th, 2022), @RebuilderAI, Seoul, South Korea
+
 from flask import Flask, request, render_template
 import os
 import datetime
 import time
-from eval import test_CLIP
-from werkzeug.utils import secure_filename
+from eval import img2text_CLIP
+from googletrans import Translator
 
-# abs_path = os.path.abspath('./') + '/'
 abs_path = os.path.dirname(os.path.abspath(__file__))
+# In the current directory 'templates' directory has html templates(index.html, etc.)
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
-app = Flask(__name__, template_folder=tmpl_dir) # NOTE: 첫번째!!
+app = Flask(__name__, template_folder=tmpl_dir)
 
+# Returns homepage
 @app.route('/', methods=['GET'])
-# def home(project_name='', methods=['GET', 'POST'], img_paths=[]):
 def home(project_name='', img_paths=''):
-    # print('@@', project_name, img_paths)
     return render_template("home.html", project_name=project_name, img_paths=img_paths)
 
-
-# @app.route('/', methods=['GET', 'POST']) # REST API 구조다!
+# If user uploads an image, this function is called
 @app.route('/upload', methods=['POST'])
 def upload():
     try:
+        # Create 'static' folder in the current directory if it does not exist
         stream_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        
-        save_dir = os.path.join(abs_path, 'streams', stream_id)
-        files_dir = os.path.join(save_dir, 'files')
+        save_dir = os.path.join(abs_path, 'static', stream_id)
+        # Create 'images' folder in the 'static' folder and save the uploaded images in it
         img_save_dir = os.path.join(save_dir, 'images')
-        obj_save_dir = os.path.join(save_dir, 'objects')
-        
         if not os.path.isdir(save_dir):
             os.mkdir(save_dir)
-            os.mkdir(files_dir)
             os.mkdir(img_save_dir)
-            os.mkdir(obj_save_dir)
-        
-        # file = request.files['images']
-        # filename = secure_filename(file.filename)
-        # # filepath = os.path.join(img_save_dir, f'00000.png')
-        # file.save(img_save_dir, filename)
-        # print(img_save_dir)
-        # print(filepath)
         
         requests = request.files.getlist('images')
-        filelist = []
+        filePathList = []
+        # Relative path of the uploaded images is needed to display(through render_template() ) them in the browser
+        relFilePathList = []
         
         for idx, req in enumerate(requests):
-            filepath = os.path.join(img_save_dir, f"{idx:05d}.png")
-            req.save(filepath)
-            filelist.append(filepath)
-        
-        # print(filelist)
-        # file = request.files['file']
-        # filename = file.filename
-        # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        # img_src = url_for('static', filename = 'uploads/' + filename)
-        # img_src = filelist[0]
+            relFilePath = os.path.join(stream_id, 'images')
+            relFilePath = os.path.join(relFilePath, f"{idx:05d}.png")
+            filePath = os.path.join(img_save_dir, f"{idx:05d}.png")
+            req.save(filePath)
+            relFilePathList.append(relFilePath)
+            filePathList.append(filePath)
 
-        start_time = time.time()
-        print(f'filelist: {filelist[0]}')
-        captionList, execTime = test_CLIP(filelist[0])
-        
+        begin_time = time.time()
+        # img2text_CLIP takes an image file(path) and returns a caption(text) that describes input image the best
+        caption_orig = img2text_CLIP(filePathList[0])
         end_time = time.time()
-        app.logger.info(end_time-start_time)
+        app.logger.info(end_time - begin_time)
         
-        return render_template('index.html', image_file=filelist[0], caption=captionList, time=execTime)
-        # return f'{captionList[0]}'
-
+        translator = Translator()
+        caption_trans = translator.translate(caption_orig, src='en', dest='ko').text
+        exec_time = begin_time - end_time
+        
+        return render_template('result.html', filePath=relFilePathList[0],caption_eng=caption_orig,
+                               caption_ko=caption_trans, time=round(exec_time, 2))
 
     except Exception as e:
         print(e)
-        return "실패입니다"    
+        return render_template('fail.html')
     
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=9081, debug=True)  # http  # NOTE: 두번쨰!!
+    app.run(host='0.0.0.0', port=9081, debug=False)

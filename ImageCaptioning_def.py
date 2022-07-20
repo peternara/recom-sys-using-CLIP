@@ -1,3 +1,5 @@
+# Modified by Sehyun Kim, 2022-07-20(July 20th, 2022), @RebuilderAI, Seoul, South Korea
+
 import clip
 import numpy as np
 import openai
@@ -7,15 +9,12 @@ openai_api_key = "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"
 openai.api_key = openai_api_key
 
 # With clip_version ViT-L/14 inference for each image takes more than 12 seconds, too slow to use.
-# clip_version = "ViT-L/14" #@param ["RN50", "RN101", "RN50x4", "RN50x16", "RN50x64", "ViT-B/32", "ViT-B/16", "ViT-L/14"] {type:"string"}
-clip_version = "RN50"
+# Available CLIP model versions: ["RN50", "RN101", "RN50x4", "RN50x16", "RN50x64", "ViT-B/32", "ViT-B/16", "ViT-L/14"] {type:"string"}
+clip_version = "ViT-B/16"
 
 gpt_version = "text-davinci-002" #@param ["text-davinci-001", "text-davinci-002", "text-curie-001", "text-babbage-001", "text-ada-001"] {type:"string"}
 
 clip_feat_dim = {'RN50': 1024, 'RN101': 512, 'RN50x4': 640, 'RN50x16': 768, 'RN50x64': 1024, 'ViT-B/32': 512, 'ViT-B/16': 512, 'ViT-L/14': 768}[clip_version]
-
-# Just for debugging
-clip_feat_dim = 768
 
 # Download CLIP model weights.
 # model, preprocess = clip.load(clip_version)  # clip.available_models()
@@ -50,15 +49,13 @@ def get_img_feats(model, preprocess, img):
 
 def get_nn_text(raw_texts, text_feats, img_feats):
     scores = text_feats @ img_feats.T
-    # print("scores : ", scores)
     scores = scores.squeeze()
-    # print("scores 2 : ", scores)
     high_to_low_ids = np.argsort(scores).squeeze()[::-1]
     high_to_low_texts = [raw_texts[i] for i in high_to_low_ids]
     high_to_low_scores = np.sort(scores).squeeze()[::-1]
     return high_to_low_texts, high_to_low_scores
 
-# Define GPT-3 helper functions.
+# Define GPT-3 helper functions
 def prompt_llm(prompt, max_tokens=64, temperature=0, stop=None):
     response = openai.Completion.create(engine=gpt_version, prompt=prompt, max_tokens=max_tokens, temperature=temperature, stop=stop)
     return response["choices"][0]["text"].strip()

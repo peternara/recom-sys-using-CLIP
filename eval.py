@@ -1,32 +1,24 @@
-# Modified by Sehyun Kim, July 18th, 2022
+# Modified by Sehyun Kim, 2022-07-20(July 20th, 2022), @RebuilderAI, Seoul, South Korea
 
 BATCH_SIZE = 4
 EPOCH = 10
 
 import torch
-from torch import optim
-import torch.nn as nn
-import clip
-# import torch.nn.functional as F
-from PIL import Image
-from torch.utils.data import Dataset, DataLoader
 import os
 import cv2
-# import matplotlib.pyplot as plt
 import numpy as np
 from profanity_filter import ProfanityFilter
-from ImageCaptioning_def import num_params, get_img_feats, get_text_feats, get_nn_text, prompt_llm
+from ImageCaptioning_def import get_img_feats, get_text_feats, get_nn_text, prompt_llm
 import pickle
-import pandas as pd
-from datetime import date, datetime
 import time
+import clip
 
-# model = torch.load("model.pt", map_location="cpu")
-
-clip_version = "ViT-L/14"
+# clip_feat_dim depends on clip_version. In this case, clip_feat_dim is set to 512
+clip_version = "ViT-B/16"
+# Available CLIP model versions: ["RN50", "RN101", "RN50x4", "RN50x16", "RN50x64", "ViT-B/32", "ViT-B/16", "ViT-L/14"] {type:"string"}
+# clip_feat_dim = {'RN50': 1024, 'RN101': 512, 'RN50x4': 640, 'RN50x16': 768, 'RN50x64': 1024, 'ViT-B/32': 512, 'ViT-B/16': 512, 'ViT-L/14': 768}[clip_version]
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-#Must set jit=False for training
-# model = torch.load("model.pt", map_location="cpu")
+# Must set jit = False for training
 model, preprocess = clip.load(clip_version, device=device, jit=False)
 
 model.cuda().eval()
@@ -37,11 +29,12 @@ place_texts = []
 for place in place_categories[:, 0]:
     place = place.split('/')[2:]
     if len(place) > 1:
-            place = place[1] + ' ' + place[0]
+        place = place[1] + ' ' + place[0]
     else:
-            place = place[0]
+        place = place[0]
     place = place.replace('_', ' ')
     place_texts.append(place)
+    
 place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts])
 
 if not os.path.exists("./object_texts.pkl"):
@@ -62,21 +55,22 @@ if not os.path.exists("./object_texts.pkl"):
         safe_list = safe_list[:-2]
         if len(safe_list) > 0:
                 object_texts.append(safe_list)
-            
-    object_texts = [o for o in list(set(object_texts)) if o not in place_texts]  # Remove redundant categories.
+    
+    # Remove redundant categories
+    object_texts = [o for o in list(set(object_texts)) if o not in place_texts]
     object_feats = get_text_feats(model, [f'Photo of a {o}.' for o in object_texts])
 
-    with open('object_texts.pkl', 'wb') as fid1:
-        pickle.dump(object_texts, fid1)
-    with open('object_feats.pkl', 'wb') as fid2:
-        pickle.dump(object_feats, fid2)
+    with open('object_texts.pkl', 'wb') as txt_fd:
+        pickle.dump(object_texts, txt_fd)
+    with open('object_feats.pkl', 'wb') as feat_fd:
+        pickle.dump(object_feats, feat_fd)
 
 else:
-    with open("object_feats.pkl", "rb") as fp1:
-        object_feats = pickle.load(fp1)
-    with open("object_texts.pkl", "rb") as fp2:
-        object_texts = pickle.load(fp2)
-        
+    with open("object_texts.pkl", "rb") as txt_fd:
+        object_texts = pickle.load(txt_fd)
+    with open("object_feats.pkl", "rb") as feat_fd:
+        object_feats = pickle.load(feat_fd)
+
 # Zero-shot VLM: Classify image mood
 img_moods = ['calm', 'monotonous',  'festive', 'gloomy', 'dreary', 'grotesque', 'cozy', 'hopeful', 
                 'hopeless', 'promising', 'horrible', 'scary', 'frightening', 'humorous', 'mysterious', 
@@ -93,16 +87,12 @@ img_colors = ['White', 'Yellow', 'Blue', 'Red', 'Green', 'Black', 'Brown', 'Beig
 obj_topk = 10
 num_captions = 5
 
-def test_CLIP(img_path):
-    startTime = time.time()
-
+def img2text_CLIP(img_path):
     # Load image
     image = cv2.imread(img_path)
     img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # , cv2.COLOR_BGR2RGB
     
     img_feats = get_img_feats(model, preprocess, img)
-    # plt.imshow(img)
-    # plt.show()
     
     img_moods_feats = get_text_feats(model, [f'Mood of the image is {t}.' for t in img_moods])
     sorted_img_moods, img_mood_scores = get_nn_text(img_moods, img_moods_feats, img_feats)
@@ -114,7 +104,7 @@ def test_CLIP(img_path):
     img_color = sorted_img_colors[0]
 
     # Zero-shot VLM: classify places.
-    place_topk = 3
+    # place_topk = 3
     place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts ])
     sorted_places, places_scores = get_nn_text(place_texts, place_feats, img_feats)
 
@@ -138,9 +128,6 @@ def test_CLIP(img_path):
     # Zero-shot VLM: rank captions
     caption_feats = get_text_feats(model, caption_texts)
     sorted_captions, caption_scores = get_nn_text(caption_texts, caption_feats, img_feats)
-
-    endTime = time.time()
     
-    return sorted_captions, endTime - startTime
-    
-##########################
+    # It only returns a single caption(how many sentences should you generate depends on your taste)
+    return sorted_captions[0]
