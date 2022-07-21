@@ -6,11 +6,9 @@ EPOCH = 10
 import torch
 import os
 import cv2
-import numpy as np
 from profanity_filter import ProfanityFilter
 from ImageCaptioning_def import get_img_feats, get_text_feats, get_nn_text, prompt_llm
 import pickle
-import time
 import clip
 
 # clip_feat_dim depends on clip_version. In this case, clip_feat_dim is set to 512
@@ -24,17 +22,17 @@ model, preprocess = clip.load(clip_version, device=device, jit=False)
 model.cuda().eval()
 
 # Load scene categories from Places365 and compute their CLIP features.
-place_categories = np.loadtxt('./categories_places365.txt', dtype=str)
-place_texts = []
-for place in place_categories[:, 0]:
-    place = place.split('/')[2:]
-    if len(place) > 1:
-        place = place[1] + ' ' + place[0]
-    else:
-        place = place[0]
-    place = place.replace('_', ' ')
-    place_texts.append(place)
-place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts])
+# place_categories = np.loadtxt('./categories_places365.txt', dtype=str)
+# place_texts = []
+# for place in place_categories[:, 0]:
+#     place = place.split('/')[2:]
+#     if len(place) > 1:
+#         place = place[1] + ' ' + place[0]
+#     else:
+#         place = place[0]
+#     place = place.replace('_', ' ')
+#     place_texts.append(place)
+# place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts])
 
 obj_text_fName = "./object_texts_" + str(clip_feat_dim) + ".pkl"
 obj_feat_fName = "./object_feats_" + str(clip_feat_dim) + ".pkl"
@@ -107,8 +105,8 @@ def img2text_CLIP(img_path):
 
     # Zero-shot VLM: classify places.
     # place_topk = 3
-    place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts ])
-    sorted_places, places_scores = get_nn_text(place_texts, place_feats, img_feats)
+    # place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts ])
+    # sorted_places, places_scores = get_nn_text(place_texts, place_feats, img_feats)
 
     # Zero-shot VLM: classify objects.
     
@@ -121,7 +119,7 @@ def img2text_CLIP(img_path):
     # Zero-shot LM: generate captions.
     prompt = f'''
         I am an intelligent image captioning bot.
-        I think there might be a {object_list} in {sorted_places[0]} with a {img_color} {img_mood} background.
+        I think there might be a {object_list} with a {img_color} {img_mood} background.
         Please recommend a background that goes well with selling this item. What kind of studio, lighting atmosphere, and props would fit?'''
     
     # Using GPT-3, generate image captions
@@ -131,5 +129,4 @@ def img2text_CLIP(img_path):
     caption_feats = get_text_feats(model, caption_texts)
     sorted_captions, caption_scores = get_nn_text(caption_texts, caption_feats, img_feats)
     
-    # It only returns a single caption(how many sentences should you generate depends on your taste)
-    return sorted_captions[0]
+    return sorted_captions
