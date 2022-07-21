@@ -16,7 +16,7 @@ import clip
 # clip_feat_dim depends on clip_version. In this case, clip_feat_dim is set to 512
 clip_version = "ViT-B/16"
 # Available CLIP model versions: ["RN50", "RN101", "RN50x4", "RN50x16", "RN50x64", "ViT-B/32", "ViT-B/16", "ViT-L/14"] {type:"string"}
-# clip_feat_dim = {'RN50': 1024, 'RN101': 512, 'RN50x4': 640, 'RN50x16': 768, 'RN50x64': 1024, 'ViT-B/32': 512, 'ViT-B/16': 512, 'ViT-L/14': 768}[clip_version]
+clip_feat_dim = {'RN50': 1024, 'RN101': 512, 'RN50x4': 640, 'RN50x16': 768, 'RN50x64': 1024, 'ViT-B/32': 512, 'ViT-B/16': 512, 'ViT-L/14': 768}[clip_version]
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 # Must set jit = False for training
 model, preprocess = clip.load(clip_version, device=device, jit=False)
@@ -34,10 +34,12 @@ for place in place_categories[:, 0]:
         place = place[0]
     place = place.replace('_', ' ')
     place_texts.append(place)
-    
 place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts])
 
-if not os.path.exists("./object_texts.pkl"):
+obj_text_fName = "./object_texts_" + str(clip_feat_dim) + ".pkl"
+obj_feat_fName = "./object_feats_" + str(clip_feat_dim) + ".pkl"
+
+if not os.path.exists(obj_text_fName):
     # Load object categories from Tencent ML Images.
     with open('./dictionary_and_semantic_hierarchy.txt') as fid:
         object_categories = fid.readlines()
@@ -60,15 +62,15 @@ if not os.path.exists("./object_texts.pkl"):
     object_texts = [o for o in list(set(object_texts)) if o not in place_texts]
     object_feats = get_text_feats(model, [f'Photo of a {o}.' for o in object_texts])
 
-    with open('object_texts.pkl', 'wb') as txt_fd:
+    with open(obj_text_fName, 'wb') as txt_fd:
         pickle.dump(object_texts, txt_fd)
-    with open('object_feats.pkl', 'wb') as feat_fd:
+    with open(obj_feat_fName, 'wb') as feat_fd:
         pickle.dump(object_feats, feat_fd)
 
 else:
-    with open("object_texts.pkl", "rb") as txt_fd:
+    with open(obj_text_fName, "rb") as txt_fd:
         object_texts = pickle.load(txt_fd)
-    with open("object_feats.pkl", "rb") as feat_fd:
+    with open(obj_feat_fName, "rb") as feat_fd:
         object_feats = pickle.load(feat_fd)
 
 # Zero-shot VLM: Classify image mood

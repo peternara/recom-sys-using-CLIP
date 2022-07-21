@@ -4,13 +4,26 @@ from flask import Flask, request, render_template
 import os
 import datetime
 import time
+from transformers import BertTokenizer, BertModel
 from eval import img2text_CLIP
+import pickle
+from torch import nn
 from googletrans import Translator
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 # In the current directory 'templates' directory has html templates(index.html, etc.)
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
+
+# tokenizer and bert_model embeds caption texts into vectors(text feature vectors)
+# Cosine similarity can be calculated from a pair of text feature vectors
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+bert_model = BertModel.from_pretrained("bert-base-uncased")
+translator = Translator()
+cos_similarity = nn.CosineSimilarity(dim=1, eps=1e-6)
+
+with open("bg_text_feat.pkl", "rb") as fd:
+    bg_text_feat = pickle.load(fd)
 
 # Returns homepage
 @app.route('/', methods=['GET'])
@@ -24,7 +37,7 @@ def upload():
         # Create 'static' folder in the current directory if it does not exist
         stream_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         save_dir = os.path.join(abs_path, 'static', stream_id)
-        # Create 'images' folder in the 'static' folder and save the uploaded images in it
+        # Create 'images' folder in the 'static' folder if it does not exist
         img_save_dir = os.path.join(save_dir, 'images')
         if not os.path.isdir(save_dir):
             os.mkdir(save_dir)
@@ -35,6 +48,7 @@ def upload():
         # Relative path of the uploaded images is needed to display(through render_template() ) them in the browser
         relFilePathList = []
         
+        # Save uploaded image in the 'images' folder
         for idx, req in enumerate(requests):
             relFilePath = os.path.join(stream_id, 'images')
             relFilePath = os.path.join(relFilePath, f"{idx:05d}.png")
@@ -43,18 +57,33 @@ def upload():
             relFilePathList.append(relFilePath)
             filePathList.append(filePath)
 
+        # Begin step 1) generating a caption from uploaded image step 2) recommending background asset
         begin_time = time.time()
         # img2text_CLIP takes an image file(path) and returns a caption(text) that describes input image the best
         caption_orig = img2text_CLIP(filePathList[0])
+        
+        encoded_input = tokenizer(caption_orig, return_tensors='pt')
+        caption_feat = bert_model(**encoded_input).pooler_output
+        
         end_time = time.time()
         app.logger.info(end_time - begin_time)
         
-        translator = Translator()
         caption_trans = translator.translate(caption_orig, src='en', dest='ko').text
+        
+        sim_score_list = []
+
+        for bg_img_fName, candidate in bg_text_feat.items():
+            sim_score_list.append((cos_similarity(caption_feat, candidate), bg_img_fName))
+        
+        # with open("sim_score_dict", "wb") as listfp:
+        #     pickle.dump(sim_score_dict, listfp)
+        sorted_score_list = sorted(sim_score_list)
+        rec_img_fName = sorted_score_list[0][1]
+        
         exec_time = begin_time - end_time
         
-        return render_template('result.html', filePath=relFilePathList[0],caption_eng=caption_orig,
-                               caption_ko=caption_trans, time=round(exec_time, 2))
+        return render_template('result.html', filePath=relFilePathList[0], caption_eng=caption_orig,
+                               caption_ko=caption_trans, rec_img_file=rec_img_fName, time=round(exec_time, 2))
 
     except Exception as e:
         print(e)

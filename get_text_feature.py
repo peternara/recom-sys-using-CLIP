@@ -28,9 +28,5 @@ for label, imgName in zip(listLabel, listImgName):
     # output_list.append(output)
     output_dict[f'{imgName:06d}'] = output
 
-# if not os.path.exists("./label_text_feat_dict.pkl"):
-    
-#     torch.save(output_dict, "./label_text_feat_dict.pkl")
-
-with open('./label_text_feat_dict.pkl', 'wb') as fid1:
+with open('./bg_text_feat.pkl', 'wb') as fid1:
     pickle.dump(output_dict, fid1)
