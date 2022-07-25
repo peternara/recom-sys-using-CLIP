@@ -12,14 +12,14 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 model = BertModel.from_pretrained("bert-base-uncased")
 
 test_img_path = './test_images'
-caption, execTime = img2text_CLIP(os.path.join(test_img_path, 'cosmetics.jpg'))
+caption = img2text_CLIP(os.path.join(test_img_path, 'cosmetics.jpg'))
 
-encoded_input = tokenizer(caption[0], return_tensors='pt')
+encoded_input = tokenizer(caption, return_tensors='pt')
 output = model(**encoded_input).pooler_output
 
 cos_sim = nn.CosineSimilarity(dim=1, eps=1e-6)
 
-with open("label_text_feat_dict.pkl", "rb") as fp1:
+with open("bg_text_feat.pkl", "rb") as fp1:
     label_text = pickle.load(fp1)
     
 score_list = []

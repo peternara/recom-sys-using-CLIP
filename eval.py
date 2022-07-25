@@ -120,7 +120,8 @@ def img2text_CLIP(img_path):
     prompt = f'''
         I am an intelligent image captioning bot.
         I think there might be a {object_list} with a {img_color} {img_mood} background.
-        Please recommend a background that goes well with selling this item. What kind of studio, lighting atmosphere, and props would fit?'''
+        Please recommend a background that goes well with selling this item. 
+        What kind of mood, color, texture, lighting, and studio would fit into this object?'''
     
     # Using GPT-3, generate image captions
     caption_texts = [prompt_llm(prompt, temperature=0.9) for _ in range(num_captions)]

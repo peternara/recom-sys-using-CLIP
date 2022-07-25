@@ -107,4 +107,4 @@ def upload():
         return render_template('fail.html')
     
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=9081, debug=False)
+    app.run(host='0.0.0.0', port=9080, debug=False)
