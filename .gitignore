@@ -1,3 +1,9 @@
+# My custom settings - ignore image and files
+*.png
+*.jpg
+*.gif
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
