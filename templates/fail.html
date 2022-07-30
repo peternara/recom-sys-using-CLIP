@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+        <script src = "./Rendering_Recommendation_API/templates/style.js"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/style_kookie.js') }}"></script>  
+        <script src="{{ url_for('static', filename='js/home.js') }}" > </script>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}"> 
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+        <meta name="format-detection" content="telephone=no">
+
+    </head>
+
+    <body>
+        <div class="svg-container">
+          <!-- I crated SVG with: https://codepen.io/anthonydugois/pen/mewdyZ -->
+          <svg viewbox="0 0 800 400" class="svg">
+            <path id="curve" fill="#50c6d8" d="M 800 300 Q 400 350 0 300 L 0 0 L 800 0 L 800 300 Z">
+            </path>
+          </svg>
+        </div>
+      
+        <header>
+            <h1>Fail to upload image...</h1>
+            <div class="space"></div>
+            <form>
+                <input class="btn btn-outline-dark" type="button" value="돌아가기" onclick="window.location.href='/'" />
+            </form>
+        </header>
+      
+        <main>
+          <p>이미지를 다시 업로드해보세요!</p>
+        </main>
+      
+        <footer>
+            <p>copyright(c) by kookie12, seankim</p>
+            <small>🕷 Wish you luck, <a href="http://armantaherian.com">Q10</a>.</small>
+          </footer>
+    </body>
+</html>
+
+
