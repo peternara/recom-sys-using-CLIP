@@ -89,7 +89,7 @@ cnt_file = 0
 for (root, dirs, files) in os.walk(bg_asset_path):
     if len(files) > 0: 
         for file_name in files:
-            file_path = os.path.abspath(os.path.join(root, file_name))
+            file_path = os.path.abspath(o1s.path.join(root, file_name))
             rel_file_path = os.path.join(root, file_name)
             label_list = img2text_CLIP(file_path)[:nCaption]
             cnt_file += 1

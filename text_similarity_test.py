@@ -23,6 +23,8 @@ sen_dict["I love horror movies"] = ["Lights out is a horror movie"]
 sen_dict["The dog bites the man"] = ["The man bites the dog", "The man bites the woman", "A Labrador Retriever is biting the boy"]
 sen_feat_dict = {}
 
+test_sen = "The mood of the studio should be light and airy, and the best studio light is natural light. The two best background colors are white and cream"
+
 for vocab, syn_list in synonym_dict.items():
     encoded_vocab = tokenizer(vocab, return_tensors='pt')
     vocab_feat = bert_model(**encoded_vocab).pooler_output

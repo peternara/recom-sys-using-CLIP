@@ -10,6 +10,7 @@ from profanity_filter import ProfanityFilter
 from ImageCaptioning_def import get_img_feats, get_text_feats, get_nn_text, prompt_llm
 import pickle
 import clip
+import numpy as np
 
 # clip_feat_dim depends on clip_version. In this case, clip_feat_dim is set to 512
 clip_version = "ViT-B/16"
@@ -22,17 +23,17 @@ model, preprocess = clip.load(clip_version, device=device, jit=False)
 model.cuda().eval()
 
 # Load scene categories from Places365 and compute their CLIP features.
-# place_categories = np.loadtxt('./categories_places365.txt', dtype=str)
-# place_texts = []
-# for place in place_categories[:, 0]:
-#     place = place.split('/')[2:]
-#     if len(place) > 1:
-#         place = place[1] + ' ' + place[0]
-#     else:
-#         place = place[0]
-#     place = place.replace('_', ' ')
-#     place_texts.append(place)
-# place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts])
+place_categories = np.loadtxt('./categories_places365.txt', dtype=str)
+place_texts = []
+for place in place_categories[:, 0]:
+    place = place.split('/')[2:]
+    if len(place) > 1:
+        place = place[1] + ' ' + place[0]
+    else:
+        place = place[0]
+    place = place.replace('_', ' ')
+    place_texts.append(place)
+place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts])
 
 obj_text_fName = "./object_texts_" + str(clip_feat_dim) + ".pkl"
 obj_feat_fName = "./object_feats_" + str(clip_feat_dim) + ".pkl"
@@ -72,17 +73,17 @@ else:
         object_feats = pickle.load(feat_fd)
 
 # Zero-shot VLM: Classify image mood
-img_moods = ['calm', 'monotonous',  'festive', 'gloomy', 'dreary', 'grotesque', 'cozy', 'hopeful', 
-                'hopeless', 'promising', 'horrible', 'scary', 'frightening', 'humorous', 'mysterious', 
+img_moods = ['calm', 'monotonous',  'festive', 'gloomy', 'cozy', 'hopeful', 
+                'hopeless', 'horrible', 'scary', 'humorous', 'mysterious', 
                 'peaceful', 'romantic', 'solitary', 'urgent', 'tense', 'tragic', 'comic', 'desperate', 
-                'dynamic', 'moving', 'touching', 'encouraging', 'heartening', 'depressing', 'discouraging', 
-                'disheartening', 'fantastic', 'awesome', 'spectacular', 'stressful', 'lively', 'brisk', 'dull', 
-                'boring', 'wearisome', 'tiresome', 'inspiring', 'relaxing', 'nostalgic', 'disgusting', 
-                'delightful', 'joyful', 'pleasant', 'merry', 'idle', 'solemn', 'grave', 'annoying', 'irritating', 
-                'threatening', 'gorgeous', 'prophetic', 'suspenseful', 'thrilling', 'pastoral', 'pitiful', 
-                'magnificent', 'natural']
+                'dynamic', 'moving', 'touching', 'encouraging', 'heartening', 'depressing',  
+                'fantastic', 'awesome', 'spectacular', 'stressful', 'lively', 'brisk',
+                'boring', 'relaxing', 'nostalgic', 'disgusting', 
+                'joyful', 'pleasant', 'grave', 'annoying',
+                'gorgeous', 'suspenseful', 'thrilling', 
+                'magnificent', 'natural', 'cheerful', 'playful', 'fun']
 
-img_colors = ['White', 'Yellow', 'Blue', 'Red', 'Green', 'Black', 'Brown', 'Beige', 'Azure', 'Ivory', 'Teal', 'Silver', 'Purple', 'Navy blue', 'Pea green', 'Gray', 'Orange', 'Maroon', 'Charcoal', 'Aquamarine', 'Coral', 'Fuchsia', 'Wheat', 'Lime', 'Crimson', 'Khaki', 'Hot pink', 'Magenta', 'Olden', 'Plum', 'Olive', 'Cyan']
+img_colors = ['White', 'Yellow', 'Blue', 'Red', 'Green', 'Black', 'Brown', 'Beige', 'Ivory', 'Silver', 'Purple', 'Navy blue', 'Gray', 'Orange', 'Charcoal', 'Aquamarine', 'Coral','Khaki']
 
 obj_topk = 10
 num_captions = 5
@@ -99,17 +100,18 @@ def img2text_CLIP(img_path):
     img_mood = sorted_img_moods[0]
 
     ### Zero-shot VLM: classify image color
-    img_colors_feats = get_text_feats(model, [f'Color of the image background is {t}.' for t in img_colors])
+    # f'Color of the photo background is {t}.'
+    img_colors_feats = get_text_feats(model, [f'{t}.' for t in img_colors])
     sorted_img_colors, img_color_scores = get_nn_text(img_colors, img_colors_feats, img_feats)
-    img_color = sorted_img_colors[0]
+    bg_color = sorted_img_colors[0]
 
     # Zero-shot VLM: classify places.
-    # place_topk = 3
-    # place_feats = get_text_feats(model, [f'Photo of a {p}.' for p in place_texts ])
-    # sorted_places, places_scores = get_nn_text(place_texts, place_feats, img_feats)
+    place_topk = 3
+    # The place where this photo was taken is 
+    place_feats = get_text_feats(model, [f'{p}.' for p in place_texts])
+    sorted_places, places_scores = get_nn_text(place_texts, place_feats, img_feats)
 
     # Zero-shot VLM: classify objects.
-    
     sorted_obj_texts, obj_scores = get_nn_text(object_texts, object_feats, img_feats)
     object_list = ''
     for i in range(obj_topk):
@@ -117,11 +119,12 @@ def img2text_CLIP(img_path):
     object_list = object_list[:-2]
 
     # Zero-shot LM: generate captions.
-    prompt = f'''
-        I am an intelligent image captioning bot.
-        I think there might be a {object_list} with a {img_color} {img_mood} background.
-        Please recommend a background that goes well with selling this item. 
-        What kind of mood, color, texture, lighting, and studio would fit into this object?'''
+    prompt = f'''What are the synonyms of "cozy"?'''
+    
+    # The main item of this image is {object_list[0]}.
+    # Describe other items found in this image: it type, position, color, and size.
+    '''The place is {sorted_places[0]}. Color of the photo background is {bg_color}.
+    There is {object_list} in the photo.'''
     
     # Using GPT-3, generate image captions
     caption_texts = [prompt_llm(prompt, temperature=0.9) for _ in range(num_captions)]
