@@ -2,7 +2,7 @@
 
 Most of the sales product images uploaded online stores or SNS have background settings that highlight the features of the products. However, it is not only time-consuming but laborous to set studio, prepare background props and take photos of every product.
 
-![Carefully chosen background assets are necessary in that they highlight unique features of the sales products.](Image%20captioning%E1%84%8B%E1%85%B3%E1%86%AF%20%E1%84%92%E1%85%AA%E1%86%AF%E1%84%8B%E1%85%AD%E1%86%BC%E1%84%92%E1%85%A1%E1%86%AB%20%E1%84%87%E1%85%A2%E1%84%80%E1%85%A7%E1%86%BC%20%E1%84%8B%E1%85%A6%E1%84%89%E1%85%A6%E1%86%BA%20%E1%84%8E%E1%85%AE%E1%84%8E%E1%85%A5%E1%86%AB%20%E1%84%86%E1%85%A9%20e330c398b847469a9294fab05ec1f97a/Untitled.png)
+![Carefully chosen background assets are necessary in that they highlight unique features of the sales products.]![alt text](https://www.notion.so/Image-captioning-d02d82eada304b17a3e7de7cbc55409e#e330c398b847469a9294fab05ec1f97a)
 
 Carefully chosen background assets are necessary in that they highlight unique features of the sales products.
 
